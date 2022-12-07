@@ -5,6 +5,11 @@
 #include <stdio.h>
 #include "dep/json/include/nlohmann/json.hpp"
 #include <iostream>
+#include "/home/ahmadi/Codes/vision-tools/dep/boost_lib/libs/asio/include/boost/asio.hpp"
+#include "/home/ahmadi/Codes/vision-tools/dep/boost_lib/libs/bind/include/boost/bind.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#include <ctime>
 using namespace cv;
 using namespace std;
 using json = nlohmann::json;
@@ -40,10 +45,36 @@ const char* keys =
 {
     "{help h||}{@image |fruits.jpg|input image name}"
 };
+
+void print(const boost::system::error_code& /*e*/,
+    boost::asio::deadline_timer* t, int* count)
+{
+  if (*count < 5)
+  {
+    std::cout << *count << std::endl;
+    ++(*count);
+
+    t->expires_at(t->expires_at() + boost::posix_time::seconds(1));
+    t->async_wait(boost::bind(print,
+          boost::asio::placeholders::error, t, count));
+  }
+}
+
 int main( int argc, const char** argv )
 {
     
-      // create an array value
+   boost::asio::io_context io;
+
+  int count = 0;
+  boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+  t.async_wait(boost::bind(print,
+        boost::asio::placeholders::error, &t, &count));
+
+  io.run();
+
+  std::cout << "Final count is " << count << std::endl;
+    
+    // create an array value
     json array = {1, 2, 3, 4, 5};
 
     // get an iterator to the first element

@@ -68,7 +68,7 @@ int main(int argc, char **argv)
         // send img
         boost::system::error_code err;
         http::file_body::value_type body;
-        std::string path = "./x.jpg";
+        std::string path = "./x.jpeg";
         body.open(path.c_str(), boost::beast::file_mode::read, err);
         auto const size = body.size();
         std::cerr << "IMG SIZE = " << size;
@@ -84,16 +84,22 @@ int main(int argc, char **argv)
         req.body() = std::move(body);
         req.target("/");
         http::write(stream, req);
-        // request_parser<http::file_body> parser{
-        //     std::piecewise_construct,
-        //     std::make_tuple(std::move(body))};
+        
+        // Receive the HTTP response
 
-        // req.set(http::field::host, host);
-        // req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-        // req.set(http::field::content_type, "image/jpeg");
-        // req.content_length(size);
-        // //req.keep_alive(req.keep_alive());
-        // http::write(stream, req);
+        // Declare a container to hold the response
+        http::response<http::dynamic_body> res;
+         // This buffer is used for reading and must be persisted
+        beast::flat_buffer buffer;
+        http::read(stream, buffer, res);
+
+        // Write the message to standard out
+        std::cout << res.body().size() << std::endl;
+        // res.body.data();
+        FILE *pFile;
+        pFile = fopen("./recived-gray-img-from-server.jpeg", "w");
+        fwrite(boost::beast::buffers_to_string(res.body().data()).data(), 1, res.body().size(), pFile);
+        fclose(pFile);
 
 #endif
 #ifdef GET

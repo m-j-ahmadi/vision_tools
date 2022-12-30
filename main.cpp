@@ -146,17 +146,23 @@ int main(int argc, const char **argv)
                 nlohmann::json test;
                 cedge.create(image.size(), image.type());
                 cvtColor(image, gray, COLOR_BGR2GRAY);
-                imwrite("gray.png", gray);
-                // Create a window
-                namedWindow(window_name1, 1);
-                namedWindow(window_name2, 1);
-                // create a toolbar
-                createTrackbar("Canny threshold default", window_name1, &edgeThresh, 100, onTrackbar);
-                createTrackbar("Canny threshold Scharr", window_name2, &edgeThreshScharr, 400, onTrackbar);
-                // Show the image
-                // onTrackbar(0, 0);
-                // Wait for a key stroke; the same function arranges events processing
-                waitKey(0);
+                imwrite("gray.jpg", gray);
+                 // send back gray img
+                http::file_body::value_type body;
+                std::string path = "./gray.jpg";
+                body.open(path.c_str(), boost::beast::file_mode::read, err);
+                auto const size = body.size();
+                std::cerr << "GRAY IMG SIZE = " << size;
+
+                http::response<http::file_body> res{std::piecewise_construct,
+                                                    std::make_tuple(std::move(body)),
+                                                    std::make_tuple(http::status::ok, req.version())};
+                res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+                res.set(http::field::content_type, "image/jpeg");
+                res.content_length(size);
+                res.keep_alive(req.keep_alive());
+                http::write(socket, res, err);
+           
             }
         }
     }

@@ -23,38 +23,6 @@ using json = nlohmann::json;
 using boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 
-int edgeThresh = 1;
-int edgeThreshScharr = 1;
-Mat image, gray, blurImage, edge1, edge2, cedge;
-const char *window_name1 = "Edge map : Canny default (Sobel gradient)";
-const char *window_name2 = "Edge map : Canny with custom gradient (Scharr)";
-// define a trackbar callback
-static void onTrackbar(int, void *)
-{
-    blur(gray, blurImage, Size(3, 3));
-    // Run the edge detector on grayscale
-    Canny(blurImage, edge1, edgeThresh, edgeThresh * 3, 3);
-    cedge = Scalar::all(0);
-    image.copyTo(cedge, edge1);
-    imshow(window_name1, cedge);
-    Mat dx, dy;
-    Scharr(blurImage, dx, CV_16S, 1, 0);
-    Scharr(blurImage, dy, CV_16S, 0, 1);
-    Canny(dx, dy, edge2, edgeThreshScharr, edgeThreshScharr * 3);
-    cedge = Scalar::all(0);
-    image.copyTo(cedge, edge2);
-    imshow(window_name2, cedge);
-}
-static void help(const char **argv)
-{
-    printf("\nThis sample demonstrates Canny edge detection\n"
-           "Call:\n"
-           "    %s [image_name -- Default is fruits.jpg]\n\n",
-           argv[0]);
-}
-const char *keys =
-    {
-        "{help h||}{@image |fruits.jpg|input image name}"};
 
 // Handles an HTTP server connection
 void do_session(
@@ -99,7 +67,8 @@ void do_session(
             fwrite(boost::beast::buffers_to_string(req.body().data()).data(), 1, req.body().size(), pFile);
             fclose(pFile);
             // show image
-            image = imread(samples::findFile(file_name), IMREAD_COLOR);
+            Mat cedge, gray;
+            auto image = imread(samples::findFile(file_name), IMREAD_COLOR);
             if (image.empty())
             {
                 printf("Cannot read image file: %s\n", file_name);
@@ -139,7 +108,6 @@ int main(int argc, const char **argv)
         std::cerr << "give me address, port and doc root please." << std::endl;
         return 1;
     }
-    
     auto const address = boost::asio::ip::make_address(argv[1]);
     auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
     auto const doc_root = std::make_shared<std::string>(argv[3]);
@@ -148,7 +116,7 @@ int main(int argc, const char **argv)
     {
         boost::asio::io_context ioc;
         tcp::acceptor acceptor{ioc, {address, port}};
-        ;
+        
         for (;;)
         {
             tcp::socket socket(ioc);

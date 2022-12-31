@@ -56,114 +56,89 @@ const char *keys =
     {
         "{help h||}{@image |fruits.jpg|input image name}"};
 
+// Handles an HTTP server connection
+void do_session(
+    tcp::socket &socket,
+    std::shared_ptr<std::string const> const &doc_root)
+{
+    boost::beast::flat_buffer buffer;
+    http::request<http::dynamic_body> req;
+    boost::system::error_code err;
+    http::read(socket, buffer, req, err);
+    if (err)
+        std::cerr << "read: " << err.message() << "\n";
+    if (req.method() == http::verb::get)
+    {
+        // send img
+        http::file_body::value_type body;
+        std::string path = "./x.jpg";
+        body.open(path.c_str(), boost::beast::file_mode::read, err);
+        auto const size = body.size();
+        std::cerr << "IMG SIZE = " << size;
+
+        http::response<http::file_body> res{std::piecewise_construct,
+                                            std::make_tuple(std::move(body)),
+                                            std::make_tuple(http::status::ok, req.version())};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "image/jpeg");
+        res.content_length(size);
+        res.keep_alive(req.keep_alive());
+        http::write(socket, res, err);
+    }
+    if (req.method() == http::verb::post)
+    {
+        // rec img
+        std::cerr << "post: method " << req.body().size();
+        FILE *pFile;
+        const char *file_name = "./reciveid-from-client.jpeg";
+        pFile = fopen(file_name, "w");
+        fwrite(boost::beast::buffers_to_string(req.body().data()).data(), 1, req.body().size(), pFile);
+        fclose(pFile);
+        // show image
+        image = imread(samples::findFile(file_name), IMREAD_COLOR);
+        if (image.empty())
+        {
+            printf("Cannot read image file: %s\n", file_name);
+            // help(argv);
+            // return -1;
+        }
+        nlohmann::json test;
+        cedge.create(image.size(), image.type());
+        cvtColor(image, gray, COLOR_BGR2GRAY);
+        imwrite("gray.jpg", gray);
+        // send back gray img
+        http::file_body::value_type body;
+        std::string path = "./gray.jpg";
+        body.open(path.c_str(), boost::beast::file_mode::read, err);
+        auto const size = body.size();
+        std::cerr << "GRAY IMG SIZE = " << size;
+
+        http::response<http::file_body> res{std::piecewise_construct,
+                                            std::make_tuple(std::move(body)),
+                                            std::make_tuple(http::status::ok, req.version())};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "image/jpeg");
+        res.content_length(size);
+        res.keep_alive(req.keep_alive());
+        http::write(socket, res, err);
+    }
+}
+
 int main(int argc, const char **argv)
 {
-
-    // // create an array value
-    // json array = {1, 2, 3, 4, 5};
-
-    // // get an iterator to the first element
-    // json::iterator it = array.begin();
-
-    // // serialize the element that the iterator points to
-    // std::cout << *it << '\n';
-
-    // help(argv);
-    // CommandLineParser parser(argc, argv, keys);
-    // string filename = parser.get<string>(0);
-    // image = imread(samples::findFile(filename), IMREAD_COLOR);
-    // if(image.empty())
-    // {
-    //     printf("Cannot read image file: %s\n", filename.c_str());
-    //     help(argv);
-    //     return -1;
-    // }
-    // nlohmann::json test;
-    // cedge.create(image.size(), image.type());
-    // cvtColor(image, gray, COLOR_BGR2GRAY);
-    // imwrite("gray.png", gray);
-    // // Create a window
-    // namedWindow(window_name1, 1);
-    // namedWindow(window_name2, 1);
-    // // create a toolbar
-    // createTrackbar("Canny threshold default", window_name1, &edgeThresh, 100, onTrackbar);
-    // createTrackbar("Canny threshold Scharr", window_name2, &edgeThreshScharr, 400, onTrackbar);
-    // // Show the image
-    // //onTrackbar(0, 0);
-    // // Wait for a key stroke; the same function arranges events processing
-    // waitKey(0);
-
+    auto const doc_root = std::make_shared<std::string>("/");
     try
     {
-        boost::asio::io_context io_service;
-        tcp::acceptor acceptor(io_service, tcp::endpoint(tcp::v4(), 1112));
-        boost::system::error_code err;
-
+        boost::asio::io_context ioc;
+        tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), 1112));
         for (;;)
         {
-            tcp::socket socket(io_service);
+            tcp::socket socket(ioc);
             acceptor.accept(socket);
-            boost::beast::flat_buffer buffer;
-            http::request<http::dynamic_body> req;
-            http::read(socket, buffer, req, err);
-            if (err)
-                std::cerr << "read: " << err.message() << "\n";
-            if (req.method() == http::verb::get)
-            {
-                // send img
-                http::file_body::value_type body;
-                std::string path = "./x.jpg";
-                body.open(path.c_str(), boost::beast::file_mode::read, err);
-                auto const size = body.size();
-                std::cerr << "IMG SIZE = " << size;
-
-                http::response<http::file_body> res{std::piecewise_construct,
-                                                    std::make_tuple(std::move(body)),
-                                                    std::make_tuple(http::status::ok, req.version())};
-                res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-                res.set(http::field::content_type, "image/jpeg");
-                res.content_length(size);
-                res.keep_alive(req.keep_alive());
-                http::write(socket, res, err);
-            }
-            if (req.method() == http::verb::post)
-            {
-                // rec img
-                std::cerr << "post: method " << req.body().size();
-                FILE *pFile;
-                const char *file_name = "./reciveid-from-client.jpeg"; 
-                pFile = fopen(file_name, "w");
-                fwrite(boost::beast::buffers_to_string(req.body().data()).data(), 1, req.body().size(), pFile);
-                fclose(pFile);
-                // show image
-                image = imread(samples::findFile(file_name), IMREAD_COLOR);
-                if (image.empty())
-                {
-                    printf("Cannot read image file: %s\n", file_name);
-                    help(argv);
-                    return -1;
-                }
-                nlohmann::json test;
-                cedge.create(image.size(), image.type());
-                cvtColor(image, gray, COLOR_BGR2GRAY);
-                imwrite("gray.jpg", gray);
-                 // send back gray img
-                http::file_body::value_type body;
-                std::string path = "./gray.jpg";
-                body.open(path.c_str(), boost::beast::file_mode::read, err);
-                auto const size = body.size();
-                std::cerr << "GRAY IMG SIZE = " << size;
-
-                http::response<http::file_body> res{std::piecewise_construct,
-                                                    std::make_tuple(std::move(body)),
-                                                    std::make_tuple(http::status::ok, req.version())};
-                res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-                res.set(http::field::content_type, "image/jpeg");
-                res.content_length(size);
-                res.keep_alive(req.keep_alive());
-                http::write(socket, res, err);
-           
-            }
+            std::thread{std::bind(
+                &do_session,
+                std::move(socket),
+                doc_root)}.detach();
         }
     }
     catch (std::exception &e)

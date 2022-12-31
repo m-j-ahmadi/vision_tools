@@ -15,12 +15,12 @@ if (${FORCE_COLORED_OUTPUT})
 endif ()
 
 #add_subdirectory(${CMAKE_SOURCE_DIR}/dep/opencv)
-set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/dep/opencv/build/)
+set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/dep/opencv)
 #message(STATUS "MY_VARIABLE=${CMAKE_SOURCE_DIR}")
 add_subdirectory(${CMAKE_SOURCE_DIR}/dep/json)
 #add_subdirectory(${CMAKE_SOURCE_DIR}/dep/boost EXCLUDE_FROM_ALL)
 #set(BOOST_ROOT ${CMAKE_SOURCE_DIR}/dep/boost/)
-set(BOOST_ROOT /home/mohamad/Codes/boost_1_81_0)
+set(BOOST_ROOT ${CMAKE_SOURCE_DIR}/dep/boost/)
 #set(Boost_USE_STATIC_LIBS OFF) 
 #set(Boost_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dep/boost_lib/)
 #set(Boost_USE_MULTITHREADED ON)  
@@ -61,7 +61,7 @@ file(GLOB vision_tools_SRC
 list(REMOVE_ITEM vision_tools_SRC ${CMAKE_CURRENT_SOURCE_DIR}/clients/http-client.cpp)
 
 # Declare the executable target built from your sources
-add_executable(vision_tools main.cpp)
+add_executable(vision_tools main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/servers/sync-server.cpp)
 add_executable(client ${CMAKE_CURRENT_SOURCE_DIR}/clients/http-client.cpp)
 # Link your application with OpenCV libraries
 target_link_libraries(vision_tools PRIVATE ${OpenCV_LIBS} nlohmann_json::nlohmann_json ${Boost_LIBRARIES})

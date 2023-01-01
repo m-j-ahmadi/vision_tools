@@ -7,16 +7,16 @@ using boost::asio::ip::tcp;
 using namespace mj;
 
 namespace http = boost::beast::http;
- SyncServer::SyncServer(/* args */)
+ sync_server::sync_server(/* args */)
 {
 
 }
 
- SyncServer::~SyncServer()
+ sync_server::~sync_server()
 {
 }
 
-void SyncServer::run()
+void sync_server::run()
 {
     auto const address = boost::asio::ip::make_address("0.0.0.0");
     auto const port = static_cast<unsigned short>(std::atoi("1112"));
@@ -45,7 +45,7 @@ void SyncServer::run()
 
 }
 
-void SyncServer::do_session(
+void sync_server::do_session(
     tcp::socket &socket,
     std::shared_ptr<std::string const> const &doc_root)
 {

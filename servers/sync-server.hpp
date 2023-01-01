@@ -21,7 +21,7 @@
 #include <ctime>
 using boost::asio::ip::tcp;
 namespace mj {
-class SyncServer
+class sync_server
 {
 private:
     static void do_session(
@@ -29,9 +29,9 @@ private:
     std::shared_ptr<std::string const> const &doc_root);
     /* data */
 public:
-   SyncServer(/* args */);
+   sync_server(/* args */);
    void run();
-   ~SyncServer();
+   ~sync_server();
 
 };
 

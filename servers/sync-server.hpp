@@ -17,8 +17,20 @@
 #include <memory>
 #include <thread>
 #include <cstdlib>
-
 #include <ctime>
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/videoio.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+
+
+
+using boost::asio::ip::tcp;
+namespace http = boost::beast::http;
 using boost::asio::ip::tcp;
 namespace mj {
 class sync_server

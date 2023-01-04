@@ -59,6 +59,8 @@ void sync_server::do_session(
             break;
         if (err)
             std::cerr << "read: " << err.message() << "\n";
+        
+        if (req.target() == "/"){
         if (req.method() == http::verb::get)
         {
             // send img
@@ -93,7 +95,7 @@ void sync_server::do_session(
             {
                 printf("Cannot read image file: %s\n", file_name);
                 // help(argv);
-                // return -1;
+                 // return -1;
             }
             nlohmann::json test;
             cedge.create(image.size(), image.type());
@@ -114,6 +116,53 @@ void sync_server::do_session(
             res.content_length(size);
             res.keep_alive(req.keep_alive());
             http::write(socket, res, err);
+        }
+        } else if (req.target() == "/stream"){
+            cv::Mat frame;
+std::vector<uchar> buffer;
+cv::Mat grayframe;
+           cv::VideoCapture cap("./file_example_MP4_480_1_5MG.mp4");
+       
+        if (!cap.isOpened()){
+            std::cerr << "Err opening video stream!!!";
+            //return 1;
+        } 
+
+          http::response<http::empty_body> res{http::status::ok, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "multipart/x-mixed-replace; boundary=frame");
+        res.keep_alive();
+        http::response_serializer<http::empty_body> sr{res};
+        http::write_header(socket, sr);
+       
+        while(cap.isOpened()){
+            cap >> frame;
+            if(!frame.empty()){
+           
+            cv::cvtColor(frame, grayframe, cv::COLOR_BGR2GRAY);
+            //cv:imshow("frame", frame);
+            cv::waitKey(500);
+            
+            cv::imencode(".jpg", grayframe, buffer, std::vector<int> {cv::IMWRITE_JPEG_QUALITY, 95});
+            auto const size = buffer.size();
+
+            // do not use http::response<>
+            // hack: write to socket the multipart message
+            std::string message { "\r\n--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " };
+            message += std::to_string( size );
+            message += "\r\n\r\n";
+            auto bytesSent = socket.send( boost::asio::buffer( message ), 0, err );
+            if( !bytesSent )
+            {
+                break;
+            }
+            bytesSent = socket.send( boost::asio::buffer( buffer ), 0, err );
+            if( !bytesSent )
+            {
+                break;
+            }
+            }
+        }
         }
     }
 

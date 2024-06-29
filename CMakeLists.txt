@@ -1,67 +1,56 @@
 # cmake needs this line
 cmake_minimum_required(VERSION 3.1)
 project(vision_tools VERSION 0.1.0)
+include(ExternalProject)  # Include ExternalProject module
 include(FindPkgConfig)
-find_package(PkgConfig) 
+find_package(PkgConfig)
 
-#Making sure that compiler output is always colorful
-option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
-if (${FORCE_COLORED_OUTPUT})
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-       add_compile_options (-fdiagnostics-color=always)
-    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-       add_compile_options (-fcolor-diagnostics)
-    endif ()
-endif ()
+set(OPENCV_BIN_INSTALL_PATH ${PROJECT_SOURCE_DIR}/build/opencv)
+# Set paths for submodules
+set(OPENCV_PATH ${PROJECT_SOURCE_DIR}/dep/opencv)
+# set(JSON_PATH ${PROJECT_SOURCE_DIR}/dep/json)
 
-#add_subdirectory(${CMAKE_SOURCE_DIR}/dep/opencv)
-set (OpenCV_DIR ${CMAKE_SOURCE_DIR}/dep/opencv)
-#message(STATUS "MY_VARIABLE=${CMAKE_SOURCE_DIR}")
-add_subdirectory(${CMAKE_SOURCE_DIR}/dep/json)
-#add_subdirectory(${CMAKE_SOURCE_DIR}/dep/boost EXCLUDE_FROM_ALL)
-#set(BOOST_ROOT ${CMAKE_SOURCE_DIR}/dep/boost/)
-set(BOOST_ROOT ${CMAKE_SOURCE_DIR}/dep/boost/)
-#set(Boost_USE_STATIC_LIBS OFF) 
-#set(Boost_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dep/boost_lib/)
-#set(Boost_USE_MULTITHREADED ON)  
-#set(Boost_USE_STATIC_RUNTIME OFF)
-set (nlohmann_json_DIR ${CMAKE_SOURCE_DIR}/build/dep/json)
-#set (Boost_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/buil/dep/boost/libs/)
-#message(STATUS "json  dir: ${nlohmann_json_DIR}")
-# Find OpenCV, you may need to set OpenCV_DIR variable
-# to the absolute path to the directory containing OpenCVConfig.cmake file
-# via the command line or GUI
-message(STATUS "OpenCV library status:")
-message(STATUS "    config: ${OpenCV_DIR}")
-message(STATUS "    version: ${OpenCV_VERSION}")
-message(STATUS "    libraries: ${OpenCV_LIBS}")
-message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
+# Add subdirectories for submodules
+add_subdirectory(${OPENCV_PATH})
+# add_subdirectory(${JSON_PATH})
+
+# Set the path to OpenCVConfig.cmake
+set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/build/)
 find_package(OpenCV REQUIRED)
-find_package(nlohmann_json 3.2.0 REQUIRED)
-find_package(Boost REQUIRED)
-if(Boost_FOUND)
-    MESSAGE( STATUS " ******************************************Setting up boost." )
-    MESSAGE( STATUS "---------------------  ${Boost_INCLUDE_DIRS}" )
-    include_directories(${Boost_INCLUDE_DIRS})
+
+if(OpenCV_FOUND)
+    message(STATUS "OpenCV library found: ${OpenCV_VERSION}")
+    message(STATUS "OpenCV include path: ${OpenCV_INCLUDE_DIRS}")
+    include_directories(${OpenCV_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "OpenCV library not found")
 endif()
 
-#include_directories(${Boost_INCLUDE_DIRS})
-# If the package has been found, several variables will
-# be set, you can find the full list with descriptions
-# in the OpenCVConfig.cmake file.
-# Print some message showing some of them
+set(BOOST_PATH ${PROJECT_SOURCE_DIR}/dep/boost)
+add_subdirectory(${BOOST_PATH})
+
+set(Boost_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/dep/boost/libs/config/include)
+set(BOOST_LIBRARYDIR ${BOOST_PATH}/stage/lib)
+
+# Find and include Boost
+find_package(Boost REQUIRED)
+if(Boost_FOUND)
+    message(STATUS "Boost library found")
+    message(STATUS "Boost include path: ${Boost_INCLUDE_DIRS}")
+    # include_directories(${Boost_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "Boost library not found")
+endif()
 
 
-
-file(GLOB vision_tools_SRC
-     "*.h"
-     "*.cpp"
-)
-
+# Gather source files
+file(GLOB vision_tools_SRC "*.h" "*.cpp")
 list(REMOVE_ITEM vision_tools_SRC ${CMAKE_CURRENT_SOURCE_DIR}/clients/http-client.cpp)
 
-# Declare the executable target built from your sources
+# Declare the executable targets built from your sources
 add_executable(vision_tools main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/servers/sync-server.cpp)
 add_executable(client ${CMAKE_CURRENT_SOURCE_DIR}/clients/http-client.cpp)
-# Link your application with OpenCV libraries
-target_link_libraries(vision_tools PRIVATE ${OpenCV_LIBS} nlohmann_json::nlohmann_json ${Boost_LIBRARIES})
+
+# Link your application with OpenCV, , and Boost libraries
+target_link_libraries(vision_tools PRIVATE ${OpenCV_LIBS}  ${Boost_LIBRARIES})
+target_link_libraries(client PRIVATE ${OpenCV_LIBS}  ${Boost_LIBRARIES})

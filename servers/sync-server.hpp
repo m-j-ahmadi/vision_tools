@@ -33,17 +33,19 @@ using boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 using boost::asio::ip::tcp;
 namespace mj {
-class sync_server
+class SyncServer
 {
 private:
     static void do_session(
     tcp::socket &socket,
     std::shared_ptr<std::string const> const &doc_root);
+    std::string _host;
+    std::string _port;
     /* data */
 public:
-   sync_server(/* args */);
+   SyncServer(std::string host, std::string port);
    void run();
-   ~sync_server();
+   ~SyncServer();
 
 };
 

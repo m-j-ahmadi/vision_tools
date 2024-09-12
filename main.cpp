@@ -7,11 +7,11 @@ int main(int argc, const char **argv)
 {
      if (argc < 3)
     {
-        std::cerr << "give me address, port and doc root please." << std::endl;
+        std::cerr << "Invalid Host or port" << std::endl;
         return 1;
     }
    
-    mj::sync_server server;
+    mj::SyncServer server(argv[1], argv[2]);
     server.run();
    
     return 0;

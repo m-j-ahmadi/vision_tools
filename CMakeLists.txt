@@ -5,17 +5,12 @@ include(ExternalProject)  # Include ExternalProject module
 include(FindPkgConfig)
 find_package(PkgConfig)
 
-set(OPENCV_BIN_INSTALL_PATH ${PROJECT_SOURCE_DIR}/build/opencv)
-# Set paths for submodules
-set(OPENCV_PATH ${PROJECT_SOURCE_DIR}/dep/opencv)
-# set(JSON_PATH ${PROJECT_SOURCE_DIR}/dep/json)
+set(NLOHMANN_JSON_PATH ${PROJECT_SOURCE_DIR}/dep/json)
 
-# Add subdirectories for submodules
-add_subdirectory(${OPENCV_PATH})
-# add_subdirectory(${JSON_PATH})
+#Add nlohmann json lib to subdirectories
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(${NLOHMANN_JSON_PATH})
 
-# Set the path to OpenCVConfig.cmake
-set(OpenCV_DIR ${PROJECT_SOURCE_DIR}/build/)
 find_package(OpenCV REQUIRED)
 
 if(OpenCV_FOUND)
@@ -26,18 +21,15 @@ else()
     message(FATAL_ERROR "OpenCV library not found")
 endif()
 
-set(BOOST_PATH ${PROJECT_SOURCE_DIR}/dep/boost)
-add_subdirectory(${BOOST_PATH})
 
-set(Boost_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/dep/boost/libs/config/include)
-set(BOOST_LIBRARYDIR ${BOOST_PATH}/stage/lib)
+find_package(Boost REQUIRED COMPONENTS filesystem system)
+include_directories(${Boost_INCLUDE_DIRS})
 
-# Find and include Boost
-find_package(Boost REQUIRED)
+
+
 if(Boost_FOUND)
-    message(STATUS "Boost library found")
-    message(STATUS "Boost include path: ${Boost_INCLUDE_DIRS}")
-    # include_directories(${Boost_INCLUDE_DIRS})
+    message(STATUS "Boost library found")   
+   
 else()
     message(FATAL_ERROR "Boost library not found")
 endif()
@@ -52,5 +44,5 @@ add_executable(vision_tools main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/servers/sync-se
 add_executable(client ${CMAKE_CURRENT_SOURCE_DIR}/clients/http-client.cpp)
 
 # Link your application with OpenCV, , and Boost libraries
-target_link_libraries(vision_tools PRIVATE ${OpenCV_LIBS}  ${Boost_LIBRARIES})
-target_link_libraries(client PRIVATE ${OpenCV_LIBS}  ${Boost_LIBRARIES})
+target_link_libraries(vision_tools PRIVATE ${OpenCV_LIBS}  ${Boost_LIBRARIES}  nlohmann_json::nlohmann_json)
+target_link_libraries(client PRIVATE ${OpenCV_LIBS}  ${Boost_LIBRARIES} nlohmann_json::nlohmann_json)

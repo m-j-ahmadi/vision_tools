@@ -11,7 +11,7 @@ int main(int argc, const char **argv)
         return 1;
     }
    
-    mj::SyncServer server;
+    mj::sync_server server;
     server.run();
    
     return 0;

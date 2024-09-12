@@ -60,15 +60,24 @@ int main(int argc, char **argv)
         // Look up the domain name
         auto const results = resolver.resolve(host, port);
 
-
         // Make the connection on the IP address we get from a lookup
-        stream.connect(results);
+
+        try
+        {
+            auto x = stream.connect(results);
+        }
+        catch (std::exception &e)
+        {
+            std::cout << e.what() << std::endl;
+            return 1;
+        }
+
 #ifdef POST
         // Set up an HTTP POST request message
         // send img
         boost::system::error_code err;
         http::file_body::value_type body;
-        std::string path = "./x.jpeg";
+        std::string path = target;
         body.open(path.c_str(), boost::beast::file_mode::read, err);
         auto const size = body.size();
         std::cerr << "IMG SIZE = " << size;

@@ -25,7 +25,8 @@ endif()
 find_package(Boost REQUIRED COMPONENTS filesystem system)
 include_directories(${Boost_INCLUDE_DIRS})
 
-
+set(CPPCODEC_PATH ${PROJECT_SOURCE_DIR}/dep/cppcodec)
+include_directories(${CPPCODEC_PATH})
 
 if(Boost_FOUND)
     message(STATUS "Boost library found")   

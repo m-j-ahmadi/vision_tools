@@ -23,6 +23,9 @@
 #include <boost/config.hpp>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include "../dep/json/include/nlohmann/json.hpp"
+#include <cppcodec/base64_rfc4648.hpp>
 #include <string>
 #define POST
 
@@ -30,7 +33,8 @@ namespace beast = boost::beast; // from <boost/beast.hpp>
 namespace http = beast::http;   // from <boost/beast/http.hpp>
 namespace net = boost::asio;    // from <boost/asio.hpp>
 using tcp = net::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
-
+using json = nlohmann::json;
+using base64 = cppcodec::base64_rfc4648;
 // Performs an HTTP GET and prints the response
 int main(int argc, char **argv)
 {
@@ -56,7 +60,7 @@ int main(int argc, char **argv)
         // These objects perform our I/O
         tcp::resolver resolver(ioc);
         beast::tcp_stream stream(ioc);
-
+         tcp::socket socket(ioc);
         // Look up the domain name
         auto const results = resolver.resolve(host, port);
 
@@ -64,7 +68,7 @@ int main(int argc, char **argv)
 
         try
         {
-            auto x = stream.connect(results);
+            auto x = net::connect(socket, results.begin(), results.end());
         }
         catch (std::exception &e)
         {
@@ -75,40 +79,46 @@ int main(int argc, char **argv)
 #ifdef POST
         // Set up an HTTP POST request message
         // send img
-        boost::system::error_code err;
-        http::file_body::value_type body;
-        std::string path = target;
-        body.open(path.c_str(), boost::beast::file_mode::read, err);
-        auto const size = body.size();
-        std::cerr << "IMG SIZE = " << size;
-        
-        http::request<http::file_body> req;/*{std::piecewise_construct,
-                                             std::make_tuple(std::move(body)),
-                                             std::make_tuplehttp::status::ok, req.version())};*/
-        req.method(http::verb::post);
-        req.content_length(size);
-        //req.set(http::field::host, host);
-        req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-        req.set(http::field::content_type, "image/jpeg");
-        req.body() = std::move(body);
-        req.target("/");
-        http::write(stream, req);
+        std::ifstream file(target, std::ios::binary);
+        std::vector<unsigned char> image_data((std::istreambuf_iterator<char>(file)),
+                                               std::istreambuf_iterator<char>());
+        std::string encoded_image = base64::encode(image_data);
+
+        // Create the JSON body
+        json json_body;
+        json_body["img"] = encoded_image;
+        json_body["ConvertColorToGray"] = true;  // Set flag to convert to grayscale
+
+        // Serialize JSON to string
+        std::string body = json_body.dump();
+
+        // Create HTTP request
+        http::request<http::string_body> req{http::verb::post, "/", 11};
+        req.set(http::field::host, host);
+        req.set(http::field::content_type, "application/json");
+        req.body() = body;
+        req.content_length(body.size());
+
+        // Send the request
+        http::write(socket, req);
         
         // Receive the HTTP response
 
-        // Declare a container to hold the response
-        http::response<http::dynamic_body> res;
-         // This buffer is used for reading and must be persisted
+             // Receive the response
         beast::flat_buffer buffer;
-        http::read(stream, buffer, res);
+        http::response<http::dynamic_body> res;
+        http::read(socket, buffer, res);
 
-        // Write the message to standard out
-        std::cout << res.body().size() << std::endl;
-        // res.body.data();
-        FILE *pFile;
-        pFile = fopen("./recived-gray-img-from-server.jpeg", "w");
-        fwrite(boost::beast::buffers_to_string(res.body().data()).data(), 1, res.body().size(), pFile);
-        fclose(pFile);
+        std::cout << res << std::endl;
+
+        // Save the response image (assumed base64 encoded)
+        json response_json = json::parse(beast::buffers_to_string(res.body().data()));
+        std::string response_image_base64 = response_json["processed_image"];
+        std::vector<unsigned char> decoded_image = base64::decode(response_image_base64);
+
+        std::ofstream output_file("received_gray_image.jpg", std::ios::binary);
+        output_file.write(reinterpret_cast<const char*>(decoded_image.data()), decoded_image.size());
+        output_file.close();
 
 #endif
 #ifdef GET

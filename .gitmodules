@@ -1,3 +1,7 @@
 [submodule "dep/json"]
 	path = dep/json
 	url = https://github.com/nlohmann/json.git
+
+[submodule "dep/cppcodec"]
+	path = dep/cppcodec
+	url = https://github.com/tplgy/cppcodec

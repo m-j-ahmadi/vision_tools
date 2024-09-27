@@ -91,42 +91,7 @@ void SyncServer::do_session(
             }
             if (req.method() == http::verb::post)
             {
-                // // rec img
-                // std::cerr << "post: method " << req.body().size();
-                // FILE *pFile;
-                // const char *file_name = "./reciveid-from-client.jpeg";
-                // pFile = fopen(file_name, "w");
-                // fwrite(boost::beast::buffers_to_string(req.body().data()).data(), 1, req.body().size(), pFile);
-                // fclose(pFile);
-                // // show image
-                // Mat cedge, gray;
-                // auto image = imread(samples::findFile(file_name), IMREAD_COLOR);
-                // if (image.empty())
-                // {
-                //     printf("Cannot read image file: %s\n", file_name);
-                //     // help(argv);
-                //     // return -1;
-                // }
-                // nlohmann::json test;
-                // cedge.create(image.size(), image.type());
-                // cvtColor(image, gray, COLOR_BGR2GRAY);
-                // imwrite("gray.jpg", gray);
-                // // send back gray img
-                // http::file_body::value_type body;
-                // std::string path = "./gray.jpg";
-                // body.open(path.c_str(), boost::beast::file_mode::read, err);
-                // auto const size = body.size();
-                // std::cerr << "GRAY IMG SIZE = " << size;
-
-                // http::response<http::file_body> res{std::piecewise_construct,
-                //                                     std::make_tuple(std::move(body)),
-                //                                     std::make_tuple(http::status::ok, req.version())};
-                // res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-                // res.set(http::field::content_type, "image/jpeg");
-                // res.content_length(size);
-                // res.keep_alive(req.keep_alive());
-                // http::write(socket, res, err);
-                  // Parse the JSON request
+                // Parse the JSON request
                 json request_json = json::parse(req.body());
 
                 // Extract base64 image
@@ -155,24 +120,35 @@ void SyncServer::do_session(
                     image = gray_image; // Replace the original image with the grayscale version
                 }
 
-        // Encode the processed image to base64
-        std::vector<unsigned char> processed_image_data;
-        imencode(".jpg", image, processed_image_data);
-        std::string encoded_image = base64::encode(processed_image_data);
+                // Check if we need to apply edge detection
+                bool detect_edges = request_json["DetectEdges"];
+                if (detect_edges)
+                {
+                    Mat edges_image;
+                    // Apply Canny edge detection
+                    Canny(image, edges_image, 100, 200);
+                    imwrite("edges_image.jpg", edges_image);
+                    image = edges_image; // Replace the original image with the edge-detected version
+                }
 
-        // Prepare the JSON response
-        json response_json;
-        response_json["processed_image"] = encoded_image;
-        std::string response_body = response_json.dump();
+                // Encode the processed image to base64
+                std::vector<unsigned char> processed_image_data;
+                imencode(".jpg", image, processed_image_data);
+                std::string encoded_image = base64::encode(processed_image_data);
 
-        // Send the response
-        http::response<http::string_body> res{http::status::ok, req.version()};
-        res.set(http::field::content_type, "application/json");
-        res.body() = response_body;
-        res.content_length(response_body.size());
-        res.keep_alive(req.keep_alive());
+                // Prepare the JSON response
+                json response_json;
+                response_json["processed_image"] = encoded_image;
+                std::string response_body = response_json.dump();
 
-        http::write(socket, res);
+                // Send the response
+                http::response<http::string_body> res{http::status::ok, req.version()};
+                res.set(http::field::content_type, "application/json");
+                res.body() = response_body;
+                res.content_length(response_body.size());
+                res.keep_alive(req.keep_alive());
+
+                http::write(socket, res);
             }
         }
         else if (req.target() == "/stream")

@@ -87,8 +87,8 @@ int main(int argc, char **argv)
         // Create the JSON body
         json json_body;
         json_body["img"] = encoded_image;
-        json_body["ConvertColorToGray"] = true;  // Set flag to convert to grayscale
-
+        json_body["ConvertColorToGray"] = false;  // Set flag to convert to grayscale
+        json_body["DetectEdges"] = true;
         // Serialize JSON to string
         std::string body = json_body.dump();
 

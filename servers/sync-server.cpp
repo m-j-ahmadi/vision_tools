@@ -91,64 +91,115 @@ void SyncServer::do_session(
             }
             if (req.method() == http::verb::post)
             {
-                // Parse the JSON request
-                json request_json = json::parse(req.body());
+               // Parse the JSON request
+               json request_json = json::parse(req.body());
 
-                // Extract base64 image
-                std::string base64_img = request_json["img"];
-                std::vector<unsigned char> img_data = base64::decode(base64_img);
+               // Extract base64 image
+               std::string base64_img = request_json["img"];
+               std::vector<unsigned char> img_data = base64::decode(base64_img);
 
-                // Save image temporarily
-                std::ofstream img_file("received_image.jpeg", std::ios::binary);
-                img_file.write(reinterpret_cast<const char *>(img_data.data()), img_data.size());
-                img_file.close();
+               // Save image temporarily
+               std::ofstream img_file("received_image.jpeg", std::ios::binary);
+               img_file.write(reinterpret_cast<const char *>(img_data.data()), img_data.size());
+               img_file.close();
 
-                // Read the image with OpenCV
-                Mat image = imread("received_image.jpeg", IMREAD_COLOR);
-                if (image.empty())
-                {
-                    throw std::runtime_error("Failed to load image");
-                }
+               // Read the image with OpenCV
+               Mat image = imread("received_image.jpeg", IMREAD_COLOR);
+               if (image.empty())
+               {
+                   throw std::runtime_error("Failed to load image");
+               }
 
-                // Check if we need to convert to grayscale
-                bool convert_to_gray = request_json["ConvertColorToGray"];
-                if (convert_to_gray)
-                {
-                    Mat gray_image;
-                    cvtColor(image, gray_image, COLOR_BGR2GRAY);
-                    imwrite("gray_image.jpg", gray_image);
-                    image = gray_image; // Replace the original image with the grayscale version
-                }
+               // Check if we need to convert to grayscale
+               if (request_json.contains("ConvertColorToGray"))
+               {
+                   bool convert_to_gray = request_json["ConvertColorToGray"];
+                   if (convert_to_gray)
+                   {
+                       Mat gray_image;
+                       cvtColor(image, gray_image, COLOR_BGR2GRAY);
+                       imwrite("gray_image.jpg", gray_image);
+                       image = gray_image; // Replace the original image with the grayscale version
+                   }
+               }
+               // Check if we need to apply edge detection
+               if (request_json.contains("DetectEdges"))
+               {
+                   bool detect_edges = request_json["DetectEdges"];
+                   if (detect_edges)
+                   {
+                       Mat edges_image;
+                       // Apply Canny edge detection
+                       Canny(image, edges_image, 100, 200);
+                       imwrite("edges_image.jpg", edges_image);
+                       image = edges_image; // Replace the original image with the edge-detected version
+                   }
+               }
 
-                // Check if we need to apply edge detection
-                bool detect_edges = request_json["DetectEdges"];
-                if (detect_edges)
-                {
-                    Mat edges_image;
-                    // Apply Canny edge detection
-                    Canny(image, edges_image, 100, 200);
-                    imwrite("edges_image.jpg", edges_image);
-                    image = edges_image; // Replace the original image with the edge-detected version
-                }
+               // Check if we need to resize the image
+               if (request_json.contains("ResizeImage"))
+               {
+                   int new_width = request_json["ResizeImage"]["width"];
+                   int new_height = request_json["ResizeImage"]["height"];
+                   resize(image, image, Size(new_width, new_height));
+               }
 
-                // Encode the processed image to base64
-                std::vector<unsigned char> processed_image_data;
-                imencode(".jpg", image, processed_image_data);
-                std::string encoded_image = base64::encode(processed_image_data);
+               // Check if we need to blur the image
+               if (request_json.contains("ApplyBlur"))
+               {
+                   bool apply_blur = request_json["ApplyBlur"];
+                   if (apply_blur)
+                   {
+                       int blur_kernel_size = request_json["BlurKernelSize"];
+                       GaussianBlur(image, image, Size(blur_kernel_size, blur_kernel_size), 0);
+                   }
+               }
+               // Check if we need to rotate the image
+               if (request_json.contains("RotateImage"))
+               {
+                   double angle = request_json["RotateImage"]["angle"];
+                   Point2f center(image.cols / 2.0, image.rows / 2.0);
+                   Mat rotation_matrix = getRotationMatrix2D(center, angle, 1.0);
+                   warpAffine(image, image, rotation_matrix, image.size());
+               }
+               // Check if we need to adjust brightness and contrast
+               if (request_json.contains("AdjustBrightnessContrast"))
+               {
+                   int brightness = request_json["AdjustBrightnessContrast"]["brightness"];
+                   double contrast = request_json["AdjustBrightnessContrast"]["contrast"];
+                   image.convertTo(image, -1, contrast, brightness);
+               }
 
-                // Prepare the JSON response
-                json response_json;
-                response_json["processed_image"] = encoded_image;
-                std::string response_body = response_json.dump();
+               // Check if we need to apply sharpening
+               if (request_json.contains("ApplySharpening"))
+               {
+                   bool apply_sharpening = request_json["ApplySharpening"];
+                   if (apply_sharpening)
+                   {
+                       Mat sharpen_kernel = (Mat_<double>(3, 3) << 0, -1, 0,
+                                             -1, 5, -1,
+                                             0, -1, 0);
+                       filter2D(image, image, -1, sharpen_kernel);
+                   }
+               }
+               // Encode the processed image to base64
+               std::vector<unsigned char> processed_image_data;
+               imencode(".jpg", image, processed_image_data);
+               std::string encoded_image = base64::encode(processed_image_data);
 
-                // Send the response
-                http::response<http::string_body> res{http::status::ok, req.version()};
-                res.set(http::field::content_type, "application/json");
-                res.body() = response_body;
-                res.content_length(response_body.size());
-                res.keep_alive(req.keep_alive());
+               // Prepare the JSON response
+               json response_json;
+               response_json["processed_image"] = encoded_image;
+               std::string response_body = response_json.dump();
 
-                http::write(socket, res);
+               // Send the response
+               http::response<http::string_body> res{http::status::ok, req.version()};
+               res.set(http::field::content_type, "application/json");
+               res.body() = response_body;
+               res.content_length(response_body.size());
+               res.keep_alive(req.keep_alive());
+
+               http::write(socket, res);
             }
         }
         else if (req.target() == "/stream")

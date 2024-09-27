@@ -87,8 +87,17 @@ int main(int argc, char **argv)
         // Create the JSON body
         json json_body;
         json_body["img"] = encoded_image;
-        json_body["ConvertColorToGray"] = false;  // Set flag to convert to grayscale
-        json_body["DetectEdges"] = true;
+        //json_body["ConvertColorToGray"] = false;  // Set flag to convert to grayscale
+        //json_body["DetectEdges"] = true;
+        //json_body["ResizeImage"] = true;
+        //json_body["ResizeImage"]["width"] = 100;
+        //json_body["ResizeImage"]["height"] = 100;
+        //json_body["ApplyBlur"] = true;
+        //json_body["BlurKernelSize"] = 15;
+        //json_body["RotateImage"]["angle"] = 45;
+        //json_body["AdjustBrightnessContrast"]["brightness"] = 95;
+        //json_body["AdjustBrightnessContrast"]["contrast"] = 100;
+        json_body["ApplySharpening"] = true;
         // Serialize JSON to string
         std::string body = json_body.dump();
 

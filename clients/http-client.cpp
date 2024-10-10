@@ -43,16 +43,16 @@ int main(int argc, char **argv)
     // Check command line arguments.
     if (argc != 4 && argc != 5)
     {
-      std::cerr << "Usage: http-client-sync <host> <port> <target> [<HTTP version: 1.0 or 1.1(default)>]\n"
+      std::cerr << "Usage: http-client-sync <host> <port> <image path> <filter type>\n"
                 << "Example:\n"
-                << "    http-client-sync www.example.com 80 /\n"
-                << "    http-client-sync www.example.com 80 / 1.0\n";
+                << "   ./client 127.0.0.1 2020 ./image.jpeg DetectEdges/\n";
       return EXIT_FAILURE;
     }
     auto const host = argv[1];
     auto const port = argv[2];
     auto const image_path = argv[3];
-    int version = argc == 5 && !std::strcmp("1.0", argv[4]) ? 10 : 11;
+    auto filter_type  = std::string(argv[4]);
+   // int version = argc == 5 && !std::strcmp("1.0", argv[4]) ? 10 : 11;
 
 
      // Open the image file in binary mode
@@ -108,17 +108,50 @@ int main(int argc, char **argv)
     // Create the JSON body
     json json_body;
     json_body["img"] = encoded_image;
-    // json_body["ConvertColorToGray"] = false;  // Set flag to convert to grayscale
-    // json_body["DetectEdges"] = true;
-    // json_body["ResizeImage"] = true;
-    // json_body["ResizeImage"]["width"] = 100;
-    // json_body["ResizeImage"]["height"] = 100;
-    // json_body["ApplyBlur"] = true;
-    // json_body["BlurKernelSize"] = 15;
-    // json_body["RotateImage"]["angle"] = 45;
-    // json_body["AdjustBrightnessContrast"]["brightness"] = 95;
-    // json_body["AdjustBrightnessContrast"]["contrast"] = 100;
-    json_body["ApplySharpening"] = true;
+
+    // Determine the filter type and set corresponding JSON values
+    if (filter_type == "ConvertColorToGray")
+    {
+      json_body["ConvertColorToGray"] = true; // Set flag to convert to grayscale
+    }
+    else if (filter_type == "DetectEdges")
+    {
+      json_body["DetectEdges"] = true; // Enable edge detection
+    }
+    else if (filter_type == "ResizeImage")
+    {
+      json_body["ResizeImage"] = {
+          {"width", 100}, // Specify width
+          {"height", 100} // Specify height
+      };
+    }
+    else if (filter_type == "ApplyBlur")
+    {
+      json_body["ApplyBlur"] = true;    // Enable blur effect
+      json_body["BlurKernelSize"] = 15; // Set kernel size for blurring
+    }
+    else if (filter_type == "RotateImage")
+    {
+      json_body["RotateImage"] = {
+          {"angle", 45} // Specify rotation angle
+      };
+    }
+    else if (filter_type == "AdjustBrightnessContrast")
+    {
+      json_body["AdjustBrightnessContrast"] = {
+          {"brightness", 95}, // Adjust brightness
+          {"contrast", 100}   // Adjust contrast
+      };
+    }
+    else if (filter_type == "ApplySharpening")
+    {
+      json_body["ApplySharpening"] = true; // Enable sharpening
+    }
+    else
+    {
+      std::cerr << "Unknown filter type: " << filter_type << std::endl;
+    }
+
     // Serialize JSON to string
     std::string body = json_body.dump();
 
@@ -139,7 +172,8 @@ int main(int argc, char **argv)
     http::response<http::dynamic_body> res;
     http::read(socket, buffer, res);
 
-    std::cout << res << std::endl;
+    //Log the res
+    //std::cout << res << std::endl;
 
     // Save the response image (assumed base64 encoded)
     json response_json = json::parse(beast::buffers_to_string(res.body().data()));

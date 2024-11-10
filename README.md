@@ -74,7 +74,15 @@ This application is a server-based solution for computer vision and image proces
 Use a tool like `curl` or Postman to send a request to the API.
 
 ```bash
-curl -X POST http://localhost:8000/process-image -F "image=@path/to/your/image.jpg"
+curl -X POST http://127.0.0.1:2020/ \
+  -H "Content-Type: application/json" \
+  -d '{
+        "img": "<encoded_image>",
+        "ResizeImage": {
+            "width": 100,
+            "height": 100
+        }
+      }'
 ```
 
 ### Check Server Status

@@ -147,6 +147,57 @@ int main(int argc, char **argv)
     {
       json_body["ApplySharpening"] = true; // Enable sharpening
     }
+    else if (filter_type == "EqualizeHistogram")
+    {
+      json_body["EqualizeHistogram"] = true; // Enable sharpening
+    }
+    else if (filter_type == "ApplyGammaCorrection")
+    {
+      json_body["ApplyGammaCorrection"] = true; // Enable sharpening
+      json_body["gamma"] = 2;
+    }
+    else if (filter_type == "ApplyWatermark")
+    {
+      json_body["ApplyWatermark"] = true; // Enable sharpening
+      json_body["text"] = "VisionCloud!";
+    }
+    else if (filter_type == "InvertColors")
+    {
+      json_body["InvertColors"] = true; // Enable sharpening
+    }
+    else if (filter_type == "ApplySepia")
+    {
+      json_body["ApplySepia"] = true; 
+    }
+    else if (filter_type == "ApplyMedianBlur")
+    {
+      json_body["ApplyMedianBlur"] = true;
+      json_body["MedianBlurKernelSize"] = 25;
+    }
+    else if (filter_type == "StretchHistogram")
+    {
+      json_body["StretchHistogram"] = true;
+    }
+    else if (filter_type == "ApplyUnsharpMask")
+    {
+      json_body["ApplyUnsharpMask"] = true;
+      json_body["UnsharpMaskStrength"] = 150;
+    }
+    else if (filter_type == "ApplyDilation")
+    {
+      json_body["ApplyDilation"] = true;
+      json_body["DilationKernelSize"] = 36;
+    }
+    else if (filter_type == "ApplyErosion")
+    {
+      json_body["ApplyErosion"] = true;
+      json_body["ErosionKernelSize"] = 150;
+    }
+    else if (filter_type == "ApplyCLAHE")
+    {
+      json_body["ApplyCLAHE"] = true;
+      json_body["CLAHEClipLimit"] = 150;
+    }
     else
     {
       std::cerr << "Unknown filter type: " << filter_type << std::endl;

@@ -182,6 +182,99 @@ void SyncServer::do_session(
                        filter2D(image, image, -1, sharpen_kernel);
                    }
                }
+               if (request_json.contains("EqualizeHistogram"))
+               {
+                   bool equalize_histogram = request_json["EqualizeHistogram"];
+                   if (equalize_histogram)
+                   {
+                       Mat equalized_image;
+                       cvtColor(image, equalized_image, COLOR_BGR2GRAY); // Convert to grayscale first
+                       equalizeHist(equalized_image, equalized_image);
+                       imwrite("equalized_image.jpg", equalized_image);
+                       image = equalized_image; // Replace original image with the equalized version
+                   }
+               }
+               if (request_json.contains("ApplyGammaCorrection"))
+               {
+                   double gamma = request_json["gamma"];
+                   Mat lut(1, 256, CV_8UC1);
+                   for (int i = 0; i < 256; i++)
+                   {
+                       lut.at<uchar>(i) = pow(i / 255.0, gamma) * 255.0;
+                   }
+                   LUT(image, lut, image);
+               }
+               if (request_json.contains("ApplyWatermark"))
+               {
+                   std::string watermark_text = request_json["text"];
+                   int font_face = FONT_HERSHEY_SIMPLEX;
+                   double font_scale = 2.0;
+                   int thickness = 2;
+                   Point origin(image.cols - image.cols * 0.3, image.rows - image.rows * 0.5 );
+                   putText(image, watermark_text, origin, font_face, font_scale, Scalar(255, 255, 255), thickness);
+               }
+               if (request_json.contains("InvertColors"))
+               {
+                   bool invert_colors = request_json["InvertColors"];
+                   if (invert_colors)
+                   {
+                       bitwise_not(image, image);
+                   }
+               }
+               if (request_json.contains("ApplySepia"))
+               {
+                   bool apply_sepia = request_json["ApplySepia"];
+                   if (apply_sepia)
+                   {
+                       Mat sepia_image = (Mat_<float>(3, 3) << 1.272, 0.534, 0.131,
+                                          0.349, 1.686, 1.168,
+                                          0.393, 0.769, 1.189);
+                       transform(image, image, sepia_image);
+                   }
+               }
+               if (request_json.contains("ApplyMedianBlur"))
+               {
+                   int kernel_size = request_json["MedianBlurKernelSize"];
+                   medianBlur(image, image, kernel_size);
+               }
+               if (request_json.contains("StretchHistogram"))
+               {
+                   double min_val, max_val;
+                   minMaxLoc(image, &min_val, &max_val);
+                   image.convertTo(image, CV_8U, 255.0 / (max_val - min_val), -min_val * 255.0 / (max_val - min_val));
+               }
+               if (request_json.contains("ApplyUnsharpMask"))
+               {
+                   double strength = request_json["UnsharpMaskStrength"];
+                   Mat blurred;
+                   GaussianBlur(image, blurred, Size(0, 0), 5);
+                   addWeighted(image, 1 + strength, blurred, -strength, 0, image);
+               }
+               if (request_json.contains("ApplyDilation"))
+               {
+                   int kernel_size = request_json["DilationKernelSize"];
+                   Mat kernel = getStructuringElement(MORPH_RECT, Size(kernel_size, kernel_size));
+                   dilate(image, image, kernel);
+               }
+               if (request_json.contains("ApplyErosion"))
+               {
+                   int kernel_size = request_json["ErosionKernelSize"];
+                   Mat kernel = getStructuringElement(MORPH_RECT, Size(kernel_size, kernel_size));
+                   erode(image, image, kernel);
+               }
+               if (request_json.contains("ApplyCLAHE"))
+               {
+                   Ptr<CLAHE> clahe = createCLAHE();
+                   clahe->setClipLimit(request_json["CLAHEClipLimit"]);
+                   Mat lab_image;
+                   cvtColor(image, lab_image, COLOR_BGR2Lab);
+                   std::vector<Mat> lab_planes(3);
+                   split(lab_image, lab_planes);
+                   clahe->apply(lab_planes[0], lab_planes[0]);
+                   merge(lab_planes, lab_image);
+                   cvtColor(lab_image, image, COLOR_Lab2BGR);
+               }
+
                // Encode the processed image to base64
                std::vector<unsigned char> processed_image_data;
                imencode(".jpg", image, processed_image_data);

@@ -41,7 +41,7 @@ file(GLOB vision_tools_SRC "*.h" "*.cpp")
 list(REMOVE_ITEM vision_tools_SRC ${CMAKE_CURRENT_SOURCE_DIR}/clients/http-client.cpp)
 
 # Declare the executable targets built from your sources
-add_executable(vision_tools main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/servers/sync-server.cpp)
+add_executable(vision_tools main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/servers/sync-server.cpp  ${CMAKE_CURRENT_SOURCE_DIR}/servers/image-processor.cpp)
 add_executable(client ${CMAKE_CURRENT_SOURCE_DIR}/clients/http-client.cpp)
 
 # Link your application with OpenCV, , and Boost libraries

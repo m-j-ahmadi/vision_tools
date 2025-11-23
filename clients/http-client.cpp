@@ -231,7 +231,7 @@ int main(int argc, char **argv)
     std::string response_image_base64 = response_json["processed_image"];
     std::vector<unsigned char> decoded_image = base64::decode(response_image_base64);
 
-    std::ofstream output_file("received_gray_image.jpg", std::ios::binary);
+    std::ofstream output_file("processed_image.jpg", std::ios::binary);
     output_file.write(reinterpret_cast<const char *>(decoded_image.data()), decoded_image.size());
     output_file.close();
 

@@ -69,6 +69,12 @@ This application is a server-based solution for computer vision and image proces
 
 ## Examples
 
+1. **Start the client:**
+
+   ```bash
+   ./client 127.0.0.1 2020 ./image.jpeg DetectEdges
+   ```
+
 ### Processing an Image
 
 Use a tool like `curl` or Postman to send a request to the API.
@@ -83,13 +89,7 @@ curl -X POST http://127.0.0.1:2020/ \
             "height": 100
         }
       }'
-```
 
-### Check Server Status
-
-```bash
-curl http://localhost:8000/status
-```
 
 ## Contributing
 
